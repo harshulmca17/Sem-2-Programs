@@ -1,0 +1,56 @@
+#include<iostream>
+#include<cstdlib>
+#include<cstdio>
+
+using namespace std;
+void enter()
+{
+	cout<<"\nEnter Total No. of Memory Segments:";
+	cin>>sizeM;
+	mem = new int [sizeM];
+	cout<<"\nEnter Size of each memory segment.\n";
+	for(int i=0;i<sizeM;i++)
+	{
+		cout<<"\nM"<<i+1;cin>>mem[i];
+	}
+	cout<<"\nEner Total No. of Processes:";
+	cin>>sizeP;
+	pro = new int [sizeP];
+	cout<<"\nEnter Memory Requirment for each process.\n";
+	for(int i=0;i<sizeP;i++)
+	{
+		cout<<"\nP"<<i+1;cin>>pro[i];
+	}
+}
+void firstFit(int *p,int *m,int sm,int sp){
+	cout<<"****************************\n\tFirst Fit.";
+}
+void bestFit(int *p,int *m,int sm,int sp){
+	cout<<"****************************\n\tBest Fit.";
+
+}
+void worstFit(int *p,int *m,int sm,int sp){
+	cout<<"****************************\n\tWorst Fit.";
+
+}
+void fit(int *p,int *m,int sm,int sp)
+{
+	firstFit(p,m,sm,sp);
+	bestFit(p,m,sm,sp);
+	worstFit(p,m,sm,sp);
+}
+
+void start()
+{
+	system("clear");
+	cout<<"\n\n\t\t\t\t\tProcess Allocation in Memory Segments.\n\n";
+}
+int  main()
+{	
+	
+	int *pro,*mem,sizeM,sizeP;
+	start();
+	enter();
+	fit(pro,mem,sizeM,sizeP);
+	return 0;
+}
