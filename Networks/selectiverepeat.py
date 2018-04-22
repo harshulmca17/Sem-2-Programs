@@ -80,12 +80,14 @@ def to_NL(I):
     print("\n\n\nData going to sent : ", I)
 
 
-def ack_checker():
+def ack_checker(t):
     for i in range(0, len(windowS)):
-        if (windowR[i].acknowledgment_recieved == False):
-            return i
-
-
+        if(t == 1):
+            if (windowR[i].acknowledgment_recieved == False):
+                return i
+        elif(t == 2):
+            if (windowS[i].acknowledgment_recieved == False):
+                return i
 def acknowledge_frame(sent_frame):
     for i in range(0, sent_frame):
         windowR[i].acknowledgment_recieved = True
@@ -129,7 +131,9 @@ def sender():
                 to_PL(windowS[sent_frame - 1])
 
         else:
-            sframe = ack_checker()
+            sframe = ack_checker(1)
+            sent_frame = ack_checker(2)
+            index_frame_send = sent_frame-1
             print("\n\n\n--------------------------------------------\nAcknowledgment Lost for Frame ", sframe + 1)
             print("Sending Frame ", sframe + 1, " again")
             to_PL(windowR[sframe])
