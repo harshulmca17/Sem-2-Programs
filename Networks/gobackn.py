@@ -3,6 +3,7 @@ import time
 
 windowS = []
 timeout = 0
+index_frame_expecting = 0
 index_frame_send = 0
 sent_frame = 0
 isAckOnHold = False
@@ -31,6 +32,7 @@ def wait_for_event():
 
 def wait_for_event_S():
     global isAckReceived, isAckOnHold, isError
+
     if (isAckReceived):
         isAckReceived = False
         return "ack"
@@ -39,7 +41,7 @@ def wait_for_event_S():
         return "hold"
     elif (isError):
         isError = False
-        return "hold"
+        return "error"
 
 
 def from_NL():
@@ -54,14 +56,15 @@ def to_PL(s):
 
 
 def to_PL_R(s):
-    global PL_data, isAckOnHold, isAckReceived, isError
+    global PL_data, isAckOnHold, isAckReceived, isError, index_frame_expecting
     PL_data = s
     ch = int(random.random() * 10)
-    if (ch <= 4):
+    if (ch <= 6):
+        index_frame_expecting += 1
         isAckReceived = True
-    elif (ch >= 7):
+    elif (ch >= 8):
         isAckOnHold = True
-    elif (ch == 5 or ch == 6):
+    elif (ch == 7):
         isError = True
 
 
@@ -78,69 +81,74 @@ def ack_checker():
     for i in range(0, len(windowS)):
         if (windowS[i].acknowledgment_recieved == False):
             return i
+
+
 def acknowledge_frame(sent_frame):
-    for i in range (0,sent_frame):
+    for i in range(0, sent_frame):
         windowS[i].acknowledgment_recieved = True
 
+
 def sender():
-    global sent_frame, index_frame_send, timeout
+    global sent_frame, index_frame_send, timeout, index_frame_expecting
     ch = int(random.random() * 20)
-    if (ch < 8):
+    if (ch < 5):
         timeout = 1
     else:
         timeout = 0
 
     if (sent_frame == 0):
-        to_PL(windowS[index_frame_send])
+        to_PL(windowS[sent_frame])
         sent_frame += 1
-        index_frame_send += 1
+        index_frame_send = sent_frame - 1
 
     else:
-        event = wait_for_event_S()
+
         if (timeout == 0):
+            event = wait_for_event_S()
             if (event == "ack"):
-                print("Acknowledgment Recieved for ", sent_frame,
+                print("\n\nAcknowledgment Recieved for ", sent_frame,
                       "\n----------------------------------------------------------------------------------")
                 acknowledge_frame(sent_frame)
                 windowS[index_frame_send - 1].acknowledgment_recieved = True
-                to_PL(windowS[index_frame_send])
+                to_PL(windowS[sent_frame])
                 sent_frame += 1
-                index_frame_send += 1
+                index_frame_send = sent_frame - 1
 
             elif (event == 'hold'):
-                windowS[index_frame_send - 1].acknowledgment_recieved = False
-                to_PL(windowS[index_frame_send])
+                windowS[index_frame_send].acknowledgment_recieved = False
+                to_PL(windowS[sent_frame])
                 sent_frame += 1
-                index_frame_send += 1
+                index_frame_send = sent_frame - 1
 
             elif (event == "error"):
-                print("Negative Acknowledgment Recieved")
+                print("\n\n\nFrame Lost in between")
                 print("Sending Frame ", sent_frame, " again")
-                to_PL(windowS[index_frame_send - 1])
+                to_PL(windowS[sent_frame - 1])
 
         else:
             sent_frame = ack_checker()
             index_frame_send = sent_frame
             print("\n\n\n--------------------------------------------\nAcknowledgment Lost for Frame ", sent_frame + 1)
             print("Sending Frame ", sent_frame + 1, " again")
-            to_PL(windowS[index_frame_send])
+            to_PL(windowS[sent_frame])
             sent_frame += 1
-            index_frame_send += 1
+            index_frame_send = sent_frame - 1
+            index_frame_expecting = index_frame_send
 
 
 def reciever():
     global isError
     r = frame(-1)
     s = frame(-1)
-    ch = int(random.random() * 100)
     event = wait_for_event()
     if (event == "frame_arr"):
         r = from_PL()
         to_NL(r.data)
-        if (ch < 60):
+        if (windowS[index_frame_expecting] == windowS[index_frame_send]):
             s.ack_no = r.seq_no
             to_PL_R(s)
         else:
+            print("\nFrame Discarded")
             isError = True
 
 
@@ -148,9 +156,10 @@ frame_nos = int(input("Enter the windows size : "))
 for i in range(0, frame_nos):
     windowS.append(frame(from_NL()))
 
-print(windowS[0].data)
+for i in range(0, frame_nos):
+    print(windowS[i].data)
 
-for i in range(0, frame_nos * 2):
+while (index_frame_expecting != len(windowS)):
     sender()
     time.sleep(2)
     reciever()
